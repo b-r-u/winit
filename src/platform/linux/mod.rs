@@ -361,7 +361,7 @@ unsafe extern "C" fn x_error_callback(
 
         eprintln!("[winit X11 error] {:#?}", error);
 
-        *xconn.latest_error.lock() = Some(error);
+        *xconn.latest_error.lock().unwrap() = Some(error);
     }
     // Fun fact: this return value is completely ignored.
     0

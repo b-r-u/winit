@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use libc;
-use parking_lot::Mutex;
+use std::sync::Mutex;
 
 use {CursorState, Icon, MouseCursor, WindowAttributes};
 use CreationError::{self, OsError};
@@ -726,16 +726,16 @@ impl Window2 {
             self.x.window,
             self.x.root,
         );
-        (*self.shared_state.lock()).frame_extents = Some(extents);
+        (*self.shared_state.lock().unwrap()).frame_extents = Some(extents);
     }
 
     fn invalidate_cached_frame_extents(&self) {
-        (*self.shared_state.lock()).frame_extents.take();
+        (*self.shared_state.lock().unwrap()).frame_extents.take();
     }
 
     #[inline]
     pub fn get_position(&self) -> Option<(i32, i32)> {
-        let extents = (*self.shared_state.lock()).frame_extents.clone();
+        let extents = (*self.shared_state.lock().unwrap()).frame_extents.clone();
         if let Some(extents) = extents {
             self.get_inner_position().map(|(x, y)|
                 extents.inner_pos_to_outer(x, y)
@@ -757,7 +757,7 @@ impl Window2 {
         // There are a few WMs that set client area position rather than window position, so
         // we'll translate for consistency.
         if util::wm_name_is_one_of(&["Enlightenment", "FVWM"]) {
-            let extents = (*self.shared_state.lock()).frame_extents.clone();
+            let extents = (*self.shared_state.lock().unwrap()).frame_extents.clone();
             if let Some(extents) = extents {
                 x += extents.frame_extents.left as i32;
                 y += extents.frame_extents.top as i32;
@@ -786,7 +786,7 @@ impl Window2 {
 
     #[inline]
     pub fn get_outer_size(&self) -> Option<(u32, u32)> {
-        let extents = (*self.shared_state.lock()).frame_extents.clone();
+        let extents = (*self.shared_state.lock().unwrap()).frame_extents.clone();
         if let Some(extents) = extents {
             self.get_inner_size().map(|(w, h)|
                 extents.inner_size_to_outer(w, h)
@@ -999,9 +999,9 @@ impl Window2 {
     }
 
     pub fn set_cursor(&self, cursor: MouseCursor) {
-        let mut current_cursor = self.cursor.lock();
+        let mut current_cursor = self.cursor.lock().unwrap();
         *current_cursor = cursor;
-        if *self.cursor_state.lock() != CursorState::Hide {
+        if *self.cursor_state.lock().unwrap() != CursorState::Hide {
             self.update_cursor(self.get_cursor(*current_cursor));
         }
     }
@@ -1047,7 +1047,7 @@ impl Window2 {
     pub fn set_cursor_state(&self, state: CursorState) -> Result<(), String> {
         use CursorState::{ Grab, Normal, Hide };
 
-        let mut cursor_state = self.cursor_state.lock();
+        let mut cursor_state = self.cursor_state.lock().unwrap();
         match (state, *cursor_state) {
             (Normal, Normal) | (Hide, Hide) | (Grab, Grab) => return Ok(()),
             _ => {},
@@ -1061,7 +1061,7 @@ impl Window2 {
                 }
             },
             Normal => {},
-            Hide => self.update_cursor(self.get_cursor(*self.cursor.lock())),
+            Hide => self.update_cursor(self.get_cursor(*self.cursor.lock().unwrap())),
         }
 
         match state {

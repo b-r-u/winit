@@ -1,7 +1,7 @@
 use std::os::raw::*;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
+use std::sync::Mutex;
 
 use super::ffi::{
     RRCrtcChangeNotifyMask,
@@ -24,7 +24,7 @@ lazy_static! {
 }
 
 fn version_is_at_least(major: c_int, minor: c_int) -> bool {
-    if let Some((avail_major, avail_minor)) = *XRANDR_VERSION.lock() {
+    if let Some((avail_major, avail_minor)) = *XRANDR_VERSION.lock().unwrap() {
         if avail_major == major {
             avail_minor >= minor
         } else {
@@ -37,7 +37,7 @@ fn version_is_at_least(major: c_int, minor: c_int) -> bool {
 
 pub fn invalidate_cached_monitor_list() -> Option<Vec<MonitorId>> {
     // We update this lazily.
-    (*MONITORS.lock()).take()
+    (*MONITORS.lock().unwrap()).take()
 }
 
 #[derive(Debug, Clone)]
@@ -204,7 +204,7 @@ fn query_monitor_list(xconn: &Arc<XConnection>) -> Vec<MonitorId> {
 }
 
 pub fn get_available_monitors(xconn: &Arc<XConnection>) -> Vec<MonitorId> {
-    let mut monitors_lock = MONITORS.lock();
+    let mut monitors_lock = MONITORS.lock().unwrap();
     (*monitors_lock)
         .as_ref()
         .cloned()
@@ -228,7 +228,7 @@ pub fn get_primary_monitor(xconn: &Arc<XConnection>) -> MonitorId {
 
 pub fn select_input(xconn: &Arc<XConnection>, root: Window) -> Result<c_int, XError> {
     {
-        let mut version_lock = XRANDR_VERSION.lock();
+        let mut version_lock = XRANDR_VERSION.lock().unwrap();
         if version_lock.is_none() {
             let mut major = 0;
             let mut minor = 0;
